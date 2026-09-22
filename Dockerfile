@@ -49,7 +49,9 @@ RUN export ARCH=$(uname -m) \
   && ldconfig
 
 # install UHD API
-RUN uhd_images_downloader
+RUN uhd_images_downloader \
+ && ln -sfn "$(find /usr/share/uhd -maxdepth 2 -type d -name images -print -quit)" \
+       /usr/share/uhd/images
 
 # install RTL-SDR API
 RUN git clone https://github.com/krakenrf/librtlsdr /opt/librtlsdr \
