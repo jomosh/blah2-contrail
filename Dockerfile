@@ -51,14 +51,15 @@ RUN export ARCH=$(uname -m) \
 # install UHD API
 # libuhd looks for firmware images at /usr/share/uhd/images, but the
 # downloader may install them under a versioned path (e.g. /usr/share/uhd/4.8.0/images).
-# Symlink the versioned directory to the canonical path so devices such as the
-# B210 can load firmware regardless of UHD ABI version. Best-effort only: if no
-# images directory is found, leave the layout untouched instead of failing the
-# build (CI/test images don't need firmware at build time).
-RUN uhd_images_downloader && \
-    IMAGES_DIR="$(find /usr/share/uhd -mindepth 1 -maxdepth 2 -type d -name images -print | sort -V | tail -n1)" && \
+# Symlink the versioned directory to the canonical path so physical USB devices
+# such as the B210 can load firmware regardless of UHD ABI version.
+# Best-effort: firmware is only required at runtime for a real device, never to
+# build or run the test suite, so a failed download must not break the image
+# build (CI runners are often offline / cannot reach files.ettus.com).
+RUN uhd_images_downloader || true; \
+    IMAGES_DIR="$(find /usr/share/uhd -mindepth 1 -maxdepth 2 -type d -name images -print | sort -V | tail -n1)"; \
     if [ -n "$IMAGES_DIR" ] && [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
-      ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images; \
+      ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images || true; \
     fi
 
 # install RTL-SDR API
