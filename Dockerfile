@@ -49,9 +49,19 @@ RUN export ARCH=$(uname -m) \
   && ldconfig
 
 # install UHD API
-RUN uhd_images_downloader \
- && ln -sfn "$(find /usr/share/uhd -maxdepth 2 -type d -name images -print -quit)" \
-       /usr/share/uhd/images
+# libuhd looks for firmware images at /usr/share/uhd/images, but the
+# downloader installs them under a versioned path (e.g. /usr/share/uhd/4.8.0/images).
+# Symlink the versioned directory to the canonical path so devices such as the
+# B210 can load firmware regardless of UHD ABI version.
+RUN uhd_images_downloader && \
+    IMAGES_DIR="$(find /usr/share/uhd -type d -name images -print -quit)" && \
+    if [ -z "$IMAGES_DIR" ]; then \
+      echo "ERROR: could not locate UHD images directory" >&2; \
+      exit 1; \
+    fi && \
+    if [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
+      ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images; \
+    fi
 
 # install RTL-SDR API
 RUN git clone https://github.com/krakenrf/librtlsdr /opt/librtlsdr \
