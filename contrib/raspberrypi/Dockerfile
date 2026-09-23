@@ -72,16 +72,14 @@ RUN export ARCH=$(uname -m) \
     
 # install UHD API
 # libuhd looks for firmware images at /usr/share/uhd/images, but the
-# downloader installs them under a versioned path (e.g. /usr/share/uhd/4.8.0/images).
+# downloader may install them under a versioned path (e.g. /usr/share/uhd/4.8.0/images).
 # Symlink the versioned directory to the canonical path so devices such as the
-# B210 can load firmware regardless of UHD ABI version.
+# B210 can load firmware regardless of UHD ABI version. Best-effort only: if no
+# images directory is found, leave the layout untouched instead of failing the
+# build (CI/test images don't need firmware at build time).
 RUN uhd_images_downloader && \
-    IMAGES_DIR="$(find /usr/share/uhd -type d -name images -print -quit)" && \
-    if [ -z "$IMAGES_DIR" ]; then \
-      echo "ERROR: could not locate UHD images directory" >&2; \
-      exit 1; \
-    fi && \
-    if [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
+    IMAGES_DIR="$(find /usr/share/uhd -mindepth 1 -maxdepth 2 -type d -name images -print | sort -V | tail -n1)" && \
+    if [ -n "$IMAGES_DIR" ] && [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
       ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images; \
     fi
 
