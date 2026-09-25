@@ -168,6 +168,7 @@ std::unique_ptr<Source> Capture::factory_source(const std::string& type, c4::yml
         std::string address, subdev;
         std::vector<std::string> antenna;
         std::vector<double> gain;
+        double bandwidth;
         std::string _antenna;
         double _gain;
         config["address"] >> address;
@@ -180,8 +181,9 @@ std::unique_ptr<Source> Capture::factory_source(const std::string& type, c4::yml
         gain.push_back(_gain);
         config["gain"][1] >> _gain;
         gain.push_back(_gain);
+        config["bandwidth"] >> bandwidth;
         return std::make_unique<Usrp>(type, fc, fs, path, &saveIq, 
-          address, subdev, antenna, gain);
+          address, subdev, antenna, gain, bandwidth);
     }
     // HackRF
     else if (type == VALID_TYPE[2])
