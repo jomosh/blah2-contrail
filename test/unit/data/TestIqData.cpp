@@ -244,6 +244,32 @@ TEST_CASE("Append_CountGreaterThanN_WithExistingData", "[iqdata]")
   CHECK(snapshot[2] == std::complex<double>(5.0, 0.0));
 }
 
+TEST_CASE("Append_CountGreaterThanN_WithHeadOffset", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> initial = {
+    {10.0, 0.0}, {20.0, 0.0}, {30.0, 0.0}, {40.0, 0.0}
+  };
+  iq.append(initial.data(), 4);
+
+  // Advance head off zero before taking the count >= n path.
+  std::vector<std::complex<double>> two(2);
+  iq.pop_into(two.data(), 2);
+
+  const std::vector<std::complex<double>> samples = {
+    {10.0, 0.0}, {20.0, 0.0}, {30.0, 0.0}, {40.0, 0.0}, {50.0, 0.0}
+  };
+  iq.append(samples.data(), 5);
+
+  // count >= n resets head and keeps only the newest n of the input.
+  REQUIRE(iq.get_length() == 4);
+  const auto snapshot = iq.get_data();
+  CHECK(snapshot[0] == std::complex<double>(20.0, 0.0));
+  CHECK(snapshot[1] == std::complex<double>(30.0, 0.0));
+  CHECK(snapshot[2] == std::complex<double>(40.0, 0.0));
+  CHECK(snapshot[3] == std::complex<double>(50.0, 0.0));
+}
+
 TEST_CASE("Append_NullPointer_Throws", "[iqdata]")
 {
   IqData iq(4);
