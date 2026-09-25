@@ -205,6 +205,59 @@ TEST_CASE("Pop_Into_CountExceedsLength_Throws", "[iqdata]")
   REQUIRE(iq.get_length() == 2);
 }
 
+TEST_CASE("Append_CountGreaterThanN_KeepsNewestN", "[iqdata]")
+{
+  IqData iq(3);
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}, {5.0, 0.0}
+  };
+  iq.append(samples.data(), 5);
+
+  REQUIRE(iq.get_length() == 3);
+  const auto snapshot = iq.get_data();
+  CHECK(snapshot[0] == std::complex<double>(3.0, 0.0));
+  CHECK(snapshot[1] == std::complex<double>(4.0, 0.0));
+  CHECK(snapshot[2] == std::complex<double>(5.0, 0.0));
+}
+
+TEST_CASE("Append_NullPointer_Throws", "[iqdata]")
+{
+  IqData iq(4);
+  CHECK_THROWS_AS(iq.append(nullptr, 2), std::invalid_argument);
+  REQUIRE(iq.get_length() == 0);
+}
+
+TEST_CASE("Pop_Into_NullPointer_Throws", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}
+  };
+  iq.append(samples.data(), 2);
+
+  CHECK_THROWS_AS(iq.pop_into(nullptr, 2), std::invalid_argument);
+  REQUIRE(iq.get_length() == 2);
+}
+
+TEST_CASE("Append_ZeroCount_IsNoOp", "[iqdata]")
+{
+  IqData iq(4);
+  iq.append(nullptr, 0);
+  REQUIRE(iq.get_length() == 0);
+}
+
+TEST_CASE("Pop_Into_ZeroCount_IsNoOp", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}
+  };
+  iq.append(samples.data(), 2);
+
+  iq.pop_into(nullptr, 0);
+  REQUIRE(iq.get_length() == 2);
+}
+
 TEST_CASE("Pop_Into_WrapBoundaryPreservesOrder", "[iqdata]")
 {
   IqData iq(4);

@@ -122,9 +122,13 @@ static_assert(std::is_trivially_copyable<std::complex<double>>::value,
 
 void IqData::append(const std::complex<double> *samples, uint32_t count)
 {
-  if (count == 0 || samples == nullptr)
+  if (count == 0)
   {
     return;
+  }
+  if (samples == nullptr)
+  {
+    throw std::invalid_argument("IqData::append samples must not be null when count > 0");
   }
 
   if (count >= n)
@@ -156,6 +160,13 @@ void IqData::append(const std::complex<double> *samples, uint32_t count)
   else
   {
     // Overwrite the oldest samples to make room.
+    //
+    // After this append the ring holds the newest n samples in FIFO order,
+    // i.e. (n - count) survivors followed by the count new ones. We first
+    // advance head by "overflow" (the number of oldest samples displaced),
+    // then write the new block at (head + (n - count)) % n, wrapping if
+    // necessary. This reproduces the final state of count single-sample
+    // push_back calls on a full buffer.
     const uint32_t overflow = count - available;
     head = (head + overflow) % n;
     uint32_t write = (head + (n - count)) % n;
@@ -173,9 +184,13 @@ void IqData::append(const std::complex<double> *samples, uint32_t count)
 
 void IqData::pop_into(std::complex<double> *out, uint32_t count)
 {
-  if (count == 0 || out == nullptr)
+  if (count == 0)
   {
     return;
+  }
+  if (out == nullptr)
+  {
+    throw std::invalid_argument("IqData::pop_into out must not be null when count > 0");
   }
   if (count > length)
   {
