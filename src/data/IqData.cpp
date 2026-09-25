@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
+#include <type_traits>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -116,6 +117,9 @@ std::complex<double> IqData::pop_front()
   return sample;
 }
 
+static_assert(std::is_trivially_copyable<std::complex<double>>::value,
+  "IqData bulk transfer relies on std::complex<double> being trivially copyable");
+
 void IqData::append(const std::complex<double> *samples, uint32_t count)
 {
   if (count == 0 || samples == nullptr)
@@ -172,6 +176,10 @@ void IqData::pop_into(std::complex<double> *out, uint32_t count)
   if (count == 0 || out == nullptr)
   {
     return;
+  }
+  if (count > length)
+  {
+    throw std::runtime_error("IqData::pop_into count exceeds available samples");
   }
 
   const uint32_t first = std::min(count, n - head);

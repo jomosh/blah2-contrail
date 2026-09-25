@@ -119,9 +119,12 @@ public:
   std::complex<double> pop_front();
 
   /// @brief Append a contiguous block of samples in bulk.
-  /// @details Semantically equivalent to calling push_back for each sample in
-  /// order, but transfers data with memcpy. When count exceeds available
-  /// capacity the oldest samples are overwritten, matching push_back.
+  /// @details Produces the same final ring state as calling push_back once per
+  /// sample in order, but transfers data with memcpy. When count exceeds the
+  /// available capacity the oldest samples are overwritten; when count >= n the
+  /// resulting buffer contains the newest n samples of the input block.
+  /// Intermediate overwrite ordering may differ from a single-sample loop, but
+  /// the final state is identical.
   /// @param samples Pointer to contiguous samples to append.
   /// @param count Number of samples to append.
   /// @return Void.

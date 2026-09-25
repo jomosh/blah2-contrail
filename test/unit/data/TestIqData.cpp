@@ -169,6 +169,42 @@ TEST_CASE("Pop_Into_BulkMatchesPopFrontSemantics", "[iqdata]")
   REQUIRE(bulk.get_data() == single.get_data());
 }
 
+TEST_CASE("Append_CountEqualsN_ReplacesWholeBuffer", "[iqdata]")
+{
+  IqData iq(3);
+  const std::vector<std::complex<double>> initial = {
+    {9.0, 0.0}, {8.0, 0.0}, {7.0, 0.0}
+  };
+  iq.append(initial.data(), 3);
+  REQUIRE(iq.get_length() == 3);
+
+  const std::vector<std::complex<double>> replacement = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}
+  };
+  iq.append(replacement.data(), 3);
+
+  REQUIRE(iq.get_length() == 3);
+  const auto snapshot = iq.get_data();
+  CHECK(snapshot[0] == std::complex<double>(1.0, 0.0));
+  CHECK(snapshot[1] == std::complex<double>(2.0, 0.0));
+  CHECK(snapshot[2] == std::complex<double>(3.0, 0.0));
+}
+
+TEST_CASE("Pop_Into_CountExceedsLength_Throws", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}
+  };
+  iq.append(samples.data(), 2);
+
+  std::vector<std::complex<double>> out(3);
+  CHECK_THROWS_AS(iq.pop_into(out.data(), 3), std::runtime_error);
+
+  // Guard must leave the buffer unchanged.
+  REQUIRE(iq.get_length() == 2);
+}
+
 TEST_CASE("Pop_Into_WrapBoundaryPreservesOrder", "[iqdata]")
 {
   IqData iq(4);
