@@ -220,6 +220,28 @@ TEST_CASE("Append_CountGreaterThanN_KeepsNewestN", "[iqdata]")
   CHECK(snapshot[2] == std::complex<double>(5.0, 0.0));
 }
 
+TEST_CASE("Append_CountGreaterThanN_WithExistingData", "[iqdata]")
+{
+  IqData iq(3);
+  const std::vector<std::complex<double>> pre = {
+    {7.0, 0.0}, {8.0, 0.0}
+  };
+  iq.append(pre.data(), 2);
+  REQUIRE(iq.get_length() == 2);
+
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}, {5.0, 0.0}
+  };
+  iq.append(samples.data(), 5);
+
+  // count >= n path must discard prior contents entirely and keep newest n.
+  REQUIRE(iq.get_length() == 3);
+  const auto snapshot = iq.get_data();
+  CHECK(snapshot[0] == std::complex<double>(3.0, 0.0));
+  CHECK(snapshot[1] == std::complex<double>(4.0, 0.0));
+  CHECK(snapshot[2] == std::complex<double>(5.0, 0.0));
+}
+
 TEST_CASE("Append_NullPointer_Throws", "[iqdata]")
 {
   IqData iq(4);
