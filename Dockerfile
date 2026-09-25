@@ -56,10 +56,12 @@ RUN export ARCH=$(uname -m) \
 # Best-effort: firmware is only required at runtime for a real device, never to
 # build or run the test suite, so a failed download must not break the image
 # build (CI runners are often offline / cannot reach files.ettus.com).
-RUN uhd_images_downloader || true; \
+RUN uhd_images_downloader || echo "WARN: UHD image download failed; firmware unavailable" >&2; \
     IMAGES_DIR="$(find /usr/share/uhd -mindepth 1 -maxdepth 2 -type d -name images -print | sort -V | tail -n1)"; \
-    if [ -n "$IMAGES_DIR" ] && [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
-      ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images || true; \
+    if [ -z "$IMAGES_DIR" ]; then \
+      echo "WARN: no UHD images directory found; attached USB devices may lack firmware" >&2; \
+    elif [ "$IMAGES_DIR" != "/usr/share/uhd/images" ]; then \
+      ln -sfnT "$IMAGES_DIR" /usr/share/uhd/images || echo "WARN: failed to symlink UHD images" >&2; \
     fi
 
 # install RTL-SDR API
