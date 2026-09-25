@@ -1,5 +1,6 @@
 #include "Usrp.h"
 
+#include <cassert>
 #include <string.h>
 #include <iostream>
 #include <limits>
@@ -61,6 +62,10 @@ void Usrp::process(IqData *buffer1, IqData *buffer2)
     std::vector<std::complex<float>> usrpBuffer1(samps_per_buff);
     std::vector<std::complex<float>> usrpBuffer2(samps_per_buff);
 
+    // pre-converted double-precision scratch for the bulk append path
+    std::vector<std::complex<double>> appendBuffer1(samps_per_buff);
+    std::vector<std::complex<double>> appendBuffer2(samps_per_buff);
+
     // create a vector of pointers to point to each of the channel buffers
     std::vector<std::complex<float>*> buff_ptrs;
     buff_ptrs.push_back(&usrpBuffer1.front());
@@ -78,20 +83,32 @@ void Usrp::process(IqData *buffer1, IqData *buffer2)
       // receive samples
       size_t nReceived = rxStreamer->recv(buff_ptrs, samps_per_buff, metadata);
 
+      // UHD guarantees nReceived <= samps_per_buff for a multi-channel recv().
+      assert(nReceived <= samps_per_buff);
+
       // print errors
       if (metadata.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
           std::cerr << "Error: " << metadata.strerror() << std::endl;
       }
 
-      buffer1->lock();
-      buffer2->lock();
-      for (size_t i = 0; i < nReceived; i++)
+      if (nReceived > 0)
       {
-        buffer1->push_back({(double)buff_ptrs[0][i].real(), (double)buff_ptrs[0][i].imag()});
-        buffer2->push_back({(double)buff_ptrs[1][i].real(), (double)buff_ptrs[1][i].imag()});
+        // convert float -> double outside the lock to minimise contention
+        for (size_t i = 0; i < nReceived; i++)
+        {
+          appendBuffer1[i] = {static_cast<double>(buff_ptrs[0][i].real()),
+                              static_cast<double>(buff_ptrs[0][i].imag())};
+          appendBuffer2[i] = {static_cast<double>(buff_ptrs[1][i].real()),
+                              static_cast<double>(buff_ptrs[1][i].imag())};
+        }
+
+        buffer1->lock();
+        buffer2->lock();
+        buffer1->append(appendBuffer1.data(), static_cast<uint32_t>(nReceived));
+        buffer2->append(appendBuffer2.data(), static_cast<uint32_t>(nReceived));
+        buffer1->unlock_and_notify();
+        buffer2->unlock_and_notify();
       }
-      buffer1->unlock_and_notify();
-      buffer2->unlock_and_notify();
 
       // save IQ data to file
       if (saveIq != nullptr && saveIq->load())

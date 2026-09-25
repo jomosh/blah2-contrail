@@ -189,6 +189,8 @@ int main(int argc, char **argv)
   // set up process CPI
   IqData *x = new IqData(nSamples);
   IqData *y = new IqData(nSamples);
+  std::vector<std::complex<double>> cpiScratch1(nSamples);
+  std::vector<std::complex<double>> cpiScratch2(nSamples);
   Map<std::complex<double>> *map;
   std::unique_ptr<Detection> detection;
   std::unique_ptr<Detection> detection1;
@@ -416,14 +418,16 @@ int main(int argc, char **argv)
         if ((buffer1->get_length() >= nSamples) && (buffer2->get_length() >= nSamples))
         {
           time.push_back(current_time_us());
-          // extract data from buffer
-          for (uint32_t i = 0; i < nSamples; i++)
-          {
-            x->push_back(buffer1->pop_front());
-            y->push_back(buffer2->pop_front());      
-          }
+          // extract data from buffer (bulk memcpy to minimise lock hold time)
+          buffer1->pop_into(cpiScratch1.data(), nSamples);
+          buffer2->pop_into(cpiScratch2.data(), nSamples);
           buffer1->unlock_and_notify();
           buffer2->unlock_and_notify();
+
+          x->clear();
+          y->clear();
+          x->append(cpiScratch1.data(), nSamples);
+          y->append(cpiScratch2.data(), nSamples);
           timing_helper(timing_name, timing_time, time, "extract_buffer");
           
           // spectrum

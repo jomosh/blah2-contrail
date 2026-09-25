@@ -118,6 +118,33 @@ public:
   /// @return Sample from the front of the queue.
   std::complex<double> pop_front();
 
+  /// @brief Append a contiguous block of samples in bulk.
+  /// @details Produces the same final ring state as calling push_back once per
+  /// sample in order, but transfers data with memcpy. When count exceeds the
+  /// available capacity the oldest samples are overwritten; when count >= n the
+  /// resulting buffer contains the newest n samples of the input block.
+  /// Intermediate overwrite ordering may differ from a single-sample loop, but
+  /// the final state is identical.
+  /// @note samples must not overlap this buffer's internal storage.
+  /// @note Not internally synchronized; the caller must hold the buffer's
+  /// mutex when sharing it across threads.
+  /// @param samples Pointer to contiguous samples to append.
+  /// @param count Number of samples to append.
+  /// @return Void.
+  void append(const std::complex<double> *samples, uint32_t count);
+
+  /// @brief Pop a contiguous block of samples from the front in bulk.
+  /// @details Semantically equivalent to calling pop_front for each sample in
+  /// order, but transfers data with memcpy.
+  /// @throws std::runtime_error if count > get_length().
+  /// @note out must not overlap this buffer's internal storage.
+  /// @note Not internally synchronized; the caller must hold the buffer's
+  /// mutex when sharing it across threads.
+  /// @param out Pointer to contiguous destination of at least count samples.
+  /// @param count Number of samples to pop.
+  /// @return Void.
+  void pop_into(std::complex<double> *out, uint32_t count);
+
   /// @brief Print to stdout (debug).
   /// @return Void.
   void print();

@@ -1,7 +1,10 @@
 #include "IqData.h"
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
+#include <type_traits>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -113,6 +116,99 @@ std::complex<double> IqData::pop_front()
   length--;
   return sample;
 }
+
+static_assert(std::is_trivially_copyable<std::complex<double>>::value,
+  "IqData bulk transfer relies on std::complex<double> being trivially copyable");
+
+void IqData::append(const std::complex<double> *samples, uint32_t count)
+{
+  if (count == 0)
+  {
+    return;
+  }
+  if (samples == nullptr)
+  {
+    throw std::invalid_argument("IqData::append samples must not be null when count > 0");
+  }
+
+  if (count >= n)
+  {
+    // The incoming block overwrites the entire buffer; keep only the newest n.
+    const uint32_t offset = count - n;
+    std::memcpy(data.data(), samples + offset,
+      n * sizeof(std::complex<double>));
+    head = 0;
+    length = n;
+    return;
+  }
+
+  const uint32_t available = n - length;
+  if (count <= available)
+  {
+    // No overwrite: append after the current newest sample.
+    uint32_t write = (head + length) % n;
+    const uint32_t first = std::min(count, n - write);
+    std::memcpy(data.data() + write, samples,
+      first * sizeof(std::complex<double>));
+    if (first < count)
+    {
+      std::memcpy(data.data(), samples + first,
+        (count - first) * sizeof(std::complex<double>));
+    }
+    length += count;
+  }
+  else
+  {
+    // Overwrite the oldest samples to make room.
+    //
+    // After this append the ring holds the newest n samples in FIFO order,
+    // i.e. (n - count) survivors followed by the count new ones. We first
+    // advance head by "overflow" (the number of oldest samples displaced),
+    // then write the new block at (head + (n - count)) % n, wrapping if
+    // necessary. This reproduces the final state of count single-sample
+    // push_back calls on a full buffer.
+    const uint32_t overflow = count - available;
+    head = (head + overflow) % n;
+    uint32_t write = (head + (n - count)) % n;
+    const uint32_t first = std::min(count, n - write);
+    std::memcpy(data.data() + write, samples,
+      first * sizeof(std::complex<double>));
+    if (first < count)
+    {
+      std::memcpy(data.data(), samples + first,
+        (count - first) * sizeof(std::complex<double>));
+    }
+    length = n;
+  }
+}
+
+void IqData::pop_into(std::complex<double> *out, uint32_t count)
+{
+  if (count == 0)
+  {
+    return;
+  }
+  if (out == nullptr)
+  {
+    throw std::invalid_argument("IqData::pop_into out must not be null when count > 0");
+  }
+  if (count > length)
+  {
+    throw std::runtime_error("IqData::pop_into count exceeds available samples");
+  }
+
+  const uint32_t first = std::min(count, n - head);
+  std::memcpy(out, data.data() + head,
+    first * sizeof(std::complex<double>));
+  if (first < count)
+  {
+    std::memcpy(out + first, data.data(),
+      (count - first) * sizeof(std::complex<double>));
+  }
+  head = (head + count) % n;
+  length -= count;
+}
+
 void IqData::print()
 {
   std::cout << length << std::endl;
