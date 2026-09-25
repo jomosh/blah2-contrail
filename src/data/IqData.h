@@ -118,6 +118,24 @@ public:
   /// @return Sample from the front of the queue.
   std::complex<double> pop_front();
 
+  /// @brief Append a contiguous block of samples in bulk.
+  /// @details Semantically equivalent to calling push_back for each sample in
+  /// order, but transfers data with memcpy. When count exceeds available
+  /// capacity the oldest samples are overwritten, matching push_back.
+  /// @param samples Pointer to contiguous samples to append.
+  /// @param count Number of samples to append.
+  /// @return Void.
+  void append(const std::complex<double> *samples, uint32_t count);
+
+  /// @brief Pop a contiguous block of samples from the front in bulk.
+  /// @details Semantically equivalent to calling pop_front for each sample in
+  /// order, but transfers data with memcpy. Caller must guarantee
+  /// count <= get_length().
+  /// @param out Pointer to contiguous destination of at least count samples.
+  /// @param count Number of samples to pop.
+  /// @return Void.
+  void pop_into(std::complex<double> *out, uint32_t count);
+
   /// @brief Print to stdout (debug).
   /// @return Void.
   void print();

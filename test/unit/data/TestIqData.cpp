@@ -103,6 +103,104 @@ TEST_CASE("Overwrite_PreservesNewestSamplesInFifoOrder", "[iqdata]")
   CHECK(iqData.get_length() == 0);
 }
 
+TEST_CASE("Append_BulkMatchesPushBackSemantics", "[iqdata]")
+{
+  IqData bulk(5);
+  IqData single(5);
+
+  const std::vector<std::complex<double>> samples = {
+    {1.0, -1.0}, {2.0, -2.0}, {3.0, -3.0}
+  };
+  bulk.append(samples.data(), static_cast<uint32_t>(samples.size()));
+  for (const auto &s : samples) {
+    single.push_back(s);
+  }
+
+  REQUIRE(bulk.get_length() == single.get_length());
+  REQUIRE(bulk.get_data() == single.get_data());
+}
+
+TEST_CASE("Append_WrapBoundaryOverwritesOldestSamples", "[iqdata]")
+{
+  IqData bulk(4);
+  IqData single(4);
+
+  const std::vector<std::complex<double>> first = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}
+  };
+  const std::vector<std::complex<double>> second = {
+    {4.0, 0.0}, {5.0, 0.0}, {6.0, 0.0}
+  };
+
+  bulk.append(first.data(), 3);
+  single.append(first.data(), 3);
+
+  // Cross the wrap boundary so append must overwrite oldest samples.
+  bulk.append(second.data(), 3);
+  for (const auto &s : second) {
+    single.push_back(s);
+  }
+
+  REQUIRE(bulk.get_length() == 4);
+  REQUIRE(single.get_length() == 4);
+  REQUIRE(bulk.get_data() == single.get_data());
+}
+
+TEST_CASE("Pop_Into_BulkMatchesPopFrontSemantics", "[iqdata]")
+{
+  IqData bulk(6);
+  IqData single(6);
+
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}, {5.0, 0.0}
+  };
+  bulk.append(samples.data(), 5);
+  single.append(samples.data(), 5);
+
+  std::vector<std::complex<double>> outBulk(3);
+  std::vector<std::complex<double>> outSingle(3);
+  bulk.pop_into(outBulk.data(), 3);
+  for (uint32_t i = 0; i < 3; i++) {
+    outSingle[i] = single.pop_front();
+  }
+
+  REQUIRE(outBulk == outSingle);
+  REQUIRE(bulk.get_length() == single.get_length());
+  REQUIRE(bulk.get_data() == single.get_data());
+}
+
+TEST_CASE("Pop_Into_WrapBoundaryPreservesOrder", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> samples = {
+    {0.0, 0.0}, {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}
+  };
+  iq.append(samples.data(), 4);
+
+  // Pop 1 to move head away from 0, then verify a full-ish wrap pop.
+  std::vector<std::complex<double>> one(1);
+  iq.pop_into(one.data(), 1);
+
+  // Refill across the wrap.
+  const std::vector<std::complex<double>> more = {
+    {4.0, 0.0}, {5.0, 0.0}, {6.0, 0.0}
+  };
+  iq.append(more.data(), 3);
+
+  const auto snapshot = iq.get_data();
+  REQUIRE(snapshot.size() == 4);
+
+  // Pop past the wrap boundary (head + count > n).
+  std::vector<std::complex<double>> out(4);
+  iq.pop_into(out.data(), 4);
+
+  CHECK(iq.get_length() == 0);
+  CHECK(out[0] == snapshot[0]);
+  CHECK(out[1] == snapshot[1]);
+  CHECK(out[2] == snapshot[2]);
+  CHECK(out[3] == snapshot[3]);
+}
+
 TEST_CASE("Paired_BuffersSkewWhenOneChannelOverwritesBeforePeerCatchesUp", "[iqdata]")
 {
   constexpr uint32_t nSamples = 4;

@@ -1,4 +1,6 @@
 #include "IqData.h"
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
@@ -113,6 +115,77 @@ std::complex<double> IqData::pop_front()
   length--;
   return sample;
 }
+
+void IqData::append(const std::complex<double> *samples, uint32_t count)
+{
+  if (count == 0 || samples == nullptr)
+  {
+    return;
+  }
+
+  if (count >= n)
+  {
+    // The incoming block overwrites the entire buffer; keep only the newest n.
+    const uint32_t offset = count - n;
+    std::memcpy(data.data(), samples + offset,
+      n * sizeof(std::complex<double>));
+    head = 0;
+    length = n;
+    return;
+  }
+
+  const uint32_t available = n - length;
+  if (count <= available)
+  {
+    // No overwrite: append after the current newest sample.
+    uint32_t write = (head + length) % n;
+    const uint32_t first = std::min(count, n - write);
+    std::memcpy(data.data() + write, samples,
+      first * sizeof(std::complex<double>));
+    if (first < count)
+    {
+      std::memcpy(data.data(), samples + first,
+        (count - first) * sizeof(std::complex<double>));
+    }
+    length += count;
+  }
+  else
+  {
+    // Overwrite the oldest samples to make room.
+    const uint32_t overflow = count - available;
+    head = (head + overflow) % n;
+    uint32_t write = (head + (n - count)) % n;
+    const uint32_t first = std::min(count, n - write);
+    std::memcpy(data.data() + write, samples,
+      first * sizeof(std::complex<double>));
+    if (first < count)
+    {
+      std::memcpy(data.data(), samples + first,
+        (count - first) * sizeof(std::complex<double>));
+    }
+    length = n;
+  }
+}
+
+void IqData::pop_into(std::complex<double> *out, uint32_t count)
+{
+  if (count == 0 || out == nullptr)
+  {
+    return;
+  }
+
+  const uint32_t first = std::min(count, n - head);
+  std::memcpy(out, data.data() + head,
+    first * sizeof(std::complex<double>));
+  if (first < count)
+  {
+    std::memcpy(out + first, data.data(),
+      (count - first) * sizeof(std::complex<double>));
+  }
+  head = (head + count) % n;
+  length -= count;
+}
+
 void IqData::print()
 {
   std::cout << length << std::endl;
