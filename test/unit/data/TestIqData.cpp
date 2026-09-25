@@ -133,7 +133,9 @@ TEST_CASE("Append_WrapBoundaryOverwritesOldestSamples", "[iqdata]")
   };
 
   bulk.append(first.data(), 3);
-  single.append(first.data(), 3);
+  for (const auto &s : first) {
+    single.push_back(s);
+  }
 
   // Cross the wrap boundary so append must overwrite oldest samples.
   bulk.append(second.data(), 3);

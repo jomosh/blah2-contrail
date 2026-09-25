@@ -135,8 +135,8 @@ public:
 
   /// @brief Pop a contiguous block of samples from the front in bulk.
   /// @details Semantically equivalent to calling pop_front for each sample in
-  /// order, but transfers data with memcpy. Caller must guarantee
-  /// count <= get_length().
+  /// order, but transfers data with memcpy.
+  /// @throws std::runtime_error if count > get_length().
   /// @note out must not overlap this buffer's internal storage.
   /// @note Not internally synchronized; the caller must hold the buffer's
   /// mutex when sharing it across threads.
