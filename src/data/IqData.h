@@ -126,6 +126,8 @@ public:
   /// Intermediate overwrite ordering may differ from a single-sample loop, but
   /// the final state is identical.
   /// @note samples must not overlap this buffer's internal storage.
+  /// @note Not internally synchronized; the caller must hold the buffer's
+  /// mutex when sharing it across threads.
   /// @param samples Pointer to contiguous samples to append.
   /// @param count Number of samples to append.
   /// @return Void.
@@ -136,6 +138,8 @@ public:
   /// order, but transfers data with memcpy. Caller must guarantee
   /// count <= get_length().
   /// @note out must not overlap this buffer's internal storage.
+  /// @note Not internally synchronized; the caller must hold the buffer's
+  /// mutex when sharing it across threads.
   /// @param out Pointer to contiguous destination of at least count samples.
   /// @param count Number of samples to pop.
   /// @return Void.
