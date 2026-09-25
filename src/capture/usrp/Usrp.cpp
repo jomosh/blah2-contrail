@@ -1,5 +1,6 @@
 #include "Usrp.h"
 
+#include <cassert>
 #include <string.h>
 #include <iostream>
 #include <limits>
@@ -81,6 +82,9 @@ void Usrp::process(IqData *buffer1, IqData *buffer2)
     {
       // receive samples
       size_t nReceived = rxStreamer->recv(buff_ptrs, samps_per_buff, metadata);
+
+      // UHD guarantees nReceived <= samps_per_buff for a multi-channel recv().
+      assert(nReceived <= samps_per_buff);
 
       // print errors
       if (metadata.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {

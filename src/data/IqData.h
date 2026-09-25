@@ -125,6 +125,7 @@ public:
   /// resulting buffer contains the newest n samples of the input block.
   /// Intermediate overwrite ordering may differ from a single-sample loop, but
   /// the final state is identical.
+  /// @note samples must not overlap this buffer's internal storage.
   /// @param samples Pointer to contiguous samples to append.
   /// @param count Number of samples to append.
   /// @return Void.
@@ -134,6 +135,7 @@ public:
   /// @details Semantically equivalent to calling pop_front for each sample in
   /// order, but transfers data with memcpy. Caller must guarantee
   /// count <= get_length().
+  /// @note out must not overlap this buffer's internal storage.
   /// @param out Pointer to contiguous destination of at least count samples.
   /// @param count Number of samples to pop.
   /// @return Void.

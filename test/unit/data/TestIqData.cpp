@@ -258,6 +258,42 @@ TEST_CASE("Pop_Into_ZeroCount_IsNoOp", "[iqdata]")
   REQUIRE(iq.get_length() == 2);
 }
 
+TEST_CASE("Append_CountEqualsAvailable_Boundary", "[iqdata]")
+{
+  IqData iq(4);
+  const std::vector<std::complex<double>> first = {{0.0, 0.0}};
+  iq.append(first.data(), 1);
+
+  const std::vector<std::complex<double>> fill = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}
+  };
+  iq.append(fill.data(), 3);
+
+  REQUIRE(iq.get_length() == 4);
+  const auto snapshot = iq.get_data();
+  CHECK(snapshot[0] == std::complex<double>(0.0, 0.0));
+  CHECK(snapshot[1] == std::complex<double>(1.0, 0.0));
+  CHECK(snapshot[2] == std::complex<double>(2.0, 0.0));
+  CHECK(snapshot[3] == std::complex<double>(3.0, 0.0));
+}
+
+TEST_CASE("Pop_Into_CountEqualsLength", "[iqdata]")
+{
+  IqData iq(5);
+  const std::vector<std::complex<double>> samples = {
+    {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}
+  };
+  iq.append(samples.data(), 3);
+
+  std::vector<std::complex<double>> out(3);
+  iq.pop_into(out.data(), 3);
+
+  REQUIRE(iq.get_length() == 0);
+  CHECK(out[0] == std::complex<double>(1.0, 0.0));
+  CHECK(out[1] == std::complex<double>(2.0, 0.0));
+  CHECK(out[2] == std::complex<double>(3.0, 0.0));
+}
+
 TEST_CASE("Pop_Into_WrapBoundaryPreservesOrder", "[iqdata]")
 {
   IqData iq(4);
