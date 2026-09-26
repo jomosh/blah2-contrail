@@ -168,7 +168,7 @@ std::unique_ptr<Source> Capture::factory_source(const std::string& type, c4::yml
         std::string address, subdev;
         std::vector<std::string> antenna;
         std::vector<double> gain;
-        double bandwidth = static_cast<double>(fs);
+        double bandwidth;
         std::string _antenna;
         double _gain;
         config["address"] >> address;
