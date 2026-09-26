@@ -38,15 +38,20 @@ private:
   /// @brief USRP gain for each channel.
   std::vector<double> gain;
 
+  /// @brief USRP RX bandwidth (Hz).
+  double bandwidth;
+
 public:
 
   /// @brief Constructor.
   /// @param fc Center frequency (Hz).
   /// @param path Path to save IQ data.
+  /// @param bandwidth RX bandwidth (Hz).
   /// @return The object.
   Usrp(std::string type, uint32_t fc, uint32_t fs, std::string path, 
     std::atomic<bool> *saveIq, std::string address, std::string subdev, 
-    std::vector<std::string> antenna, std::vector<double> gain);
+    std::vector<std::string> antenna, std::vector<double> gain,
+    double bandwidth);
 
   /// @brief Implement capture function on USRP.
   /// @param buffer1 Pointer to reference buffer.

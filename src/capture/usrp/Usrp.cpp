@@ -12,13 +12,14 @@
 Usrp::Usrp(std::string _type, uint32_t _fc, uint32_t _fs,
   std::string _path, std::atomic<bool> *_saveIq, std::string _address,
   std::string _subdev, std::vector<std::string> _antenna,
-  std::vector<double> _gain)
+  std::vector<double> _gain, double _bandwidth)
     : Source(_type, _fc, _fs, _path, _saveIq)
 {
   address = _address;
   subdev = _subdev;
   antenna = _antenna;
   gain = _gain;
+  bandwidth = _bandwidth;
 }
 
 void Usrp::start()
@@ -42,6 +43,10 @@ void Usrp::process(IqData *buffer1, IqData *buffer2)
 
     // set sample rate across all channels
     usrp->set_rx_rate((double(fs)));
+
+    // set the RX bandwidth across all channels
+    usrp->set_rx_bandwidth(bandwidth, 0);
+    usrp->set_rx_bandwidth(bandwidth, 1);
 
     // set the center frequency
     double centerFrequency = (double)fc;

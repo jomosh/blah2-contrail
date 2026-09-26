@@ -7,6 +7,7 @@ capture:
     subdev: "A:A A:B"
     antenna: ["RX2", "RX2"]
     gain: [20.0, 20.0]
+    bandwidth: 2000000
   replay:
     state: false
     loop: true
