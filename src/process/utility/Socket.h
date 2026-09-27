@@ -20,11 +20,21 @@ private:
     /// @brief Common MTU size for all socket objects.
     static const uint32_t MTU;
 
+    /// @brief Send deadline (ms) applied to each blocking socket send.
+    /// @details Prevents a stalled API/consumer from wedging the real-time
+    /// CPI thread indefinitely.
+    static const uint32_t SEND_TIMEOUT_MS;
+
     /// @brief The ASIO endpoint.
     asio::ip::tcp::endpoint endpoint;
 
     /// @brief The ASIO socket.
     asio::ip::tcp::socket socket;
+
+    /// @brief True once a send has failed/timed out; later sends are skipped.
+    /// @details Bounds the cost of a hung peer to a single timeout rather than
+    /// repeated blocking on every CPI.
+    bool dead_ = false;
 
 public:
     /// @brief Constructor for Socket.
